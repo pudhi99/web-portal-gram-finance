@@ -85,9 +85,10 @@ const getStatusVariant = (status: string) => {
 export default async function CollectionDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const collection = await getCollectionById(params.id);
+  const { id } = await params
+  const collection = await getCollectionById(id);
 
   if (!collection) {
     notFound();

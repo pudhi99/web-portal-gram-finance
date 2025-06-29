@@ -44,10 +44,11 @@ export async function uploadToCloudinary(
         created_at: result.created_at,
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Upload failed'
     return {
       success: false,
-      error: error.message || 'Upload failed'
+      error: errorMessage
     }
   }
 }
@@ -58,12 +59,13 @@ export async function deleteFromCloudinary(publicId: string): Promise<Cloudinary
     const result = await cloudinary.uploader.destroy(publicId)
     return {
       success: result.result === 'ok',
-      result: result as any
+      result: result as CloudinaryUploadResult
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Delete failed'
     return {
       success: false,
-      error: error.message || 'Delete failed'
+      error: errorMessage
     }
   }
 }
@@ -101,10 +103,11 @@ export async function getImageDetails(publicId: string): Promise<CloudinaryRespo
       success: true,
       result
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to get image details'
     return {
       success: false,
-      error: error.message || 'Failed to get image details'
+      error: errorMessage
     }
   }
 }

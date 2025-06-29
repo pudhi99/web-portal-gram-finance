@@ -24,11 +24,11 @@ async function getCollection(id: string) {
 export default async function EditCollectionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params
   await dbConnect();
-  const context = { params };
-  const collection = await getCollection(context.params.id);
+  const collection = await getCollection(id);
 
   if (!collection) {
     notFound();

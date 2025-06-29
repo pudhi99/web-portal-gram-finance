@@ -25,9 +25,10 @@ async function getBorrowerById(id: string): Promise<IBorrower | null> {
 export default async function BorrowerDetailsPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const borrower = await getBorrowerById(params.id)
+  const { id } = await params
+  const borrower = await getBorrowerById(id)
 
   if (!borrower) {
     notFound()

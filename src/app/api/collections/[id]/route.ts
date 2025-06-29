@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import dbConnect from '@/lib/dbConnect';
 import Collection from '@/models/Collection';
 import mongoose from 'mongoose';
@@ -8,7 +8,7 @@ import { updateCollectionSchema } from '@/lib/validations/collection';
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
     await dbConnect();
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -52,7 +52,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -60,7 +60,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
     await dbConnect();
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -95,7 +95,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -103,7 +103,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
     await dbConnect();
 
     if (!mongoose.Types.ObjectId.isValid(id)) {

@@ -25,10 +25,20 @@ export interface ImageOptimizationOptions {
   gravity?: 'auto' | 'face' | 'center' | 'north' | 'south' | 'east' | 'west'
 }
 
+export interface CloudinaryTransformation {
+  width?: number | string
+  height?: number | string
+  crop?: string
+  quality?: number | string
+  format?: string
+  gravity?: string
+  [key: string]: unknown
+}
+
 export interface UploadOptions {
   folder?: string
   public_id?: string
   overwrite?: boolean
   resource_type?: 'image' | 'video' | 'raw' | 'auto'
-  transformation?: any[]
+  transformation?: CloudinaryTransformation[]
 } 

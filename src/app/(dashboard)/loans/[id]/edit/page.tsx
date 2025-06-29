@@ -20,11 +20,11 @@ async function getLoan(id: string) {
 export default async function EditLoanPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   await dbConnect() // Ensure db connection
-  const context = { params } // Recreate context for awaited access
-  const loan = await getLoan(context.params.id)
+  const loan = await getLoan(id)
 
   if (!loan) {
     notFound()

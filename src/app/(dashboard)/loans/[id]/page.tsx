@@ -43,16 +43,17 @@ const statusColors: Record<LoanStatus, string> = {
 export default async function LoanDetailsPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const loan = await getLoanById(params.id)
+  const { id } = await params
+  const loan = await getLoanById(id)
 
   if (!loan) {
     notFound()
   }
 
   const totalPaid = (loan.installments as IInstallment[]).reduce(
-    (acc, inst) => acc + (inst.amountPaid || 0),
+    (acc, inst) => acc + (inst.amount || 0),
     0
   )
   const outstanding = loan.principalAmount - totalPaid
@@ -131,13 +132,13 @@ export default async function LoanDetailsPage({
                     {new Intl.NumberFormat('en-IN', {
                       style: 'currency',
                       currency: 'INR',
-                    }).format(inst.amountDue)}
+                    }).format(inst.amount)}
                   </TableCell>
                   <TableCell>
                     {new Intl.NumberFormat('en-IN', {
                       style: 'currency',
                       currency: 'INR',
-                    }).format(inst.amountPaid)}
+                    }).format(inst.amount)}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -149,9 +150,7 @@ export default async function LoanDetailsPage({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {inst.paymentDate
-                      ? format(new Date(inst.paymentDate), 'PPP')
-                      : 'N/A'}
+                    {inst.status === 'PAID' ? 'Paid' : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))}

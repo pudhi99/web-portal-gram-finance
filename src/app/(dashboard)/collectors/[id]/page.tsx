@@ -67,9 +67,10 @@ const DetailItem = ({ label, value }: { label: string; value: React.ReactNode })
 export default async function CollectorDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const collector = await getCollectorById(params.id);
+  const { id } = await params
+  const collector = await getCollectorById(id);
 
   if (!collector) {
     notFound();

@@ -13,22 +13,26 @@ async function getCollectorById(id: string) {
   return data.data;
 }
 
-export default function EditCollectorPage({ params }: { params: { id: string } }) {
+export default function EditCollectorPage({ params }: { params: Promise<{ id: string }> }) {
   const [collector, setCollector] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!params.id) return;
-    getCollectorById(params.id)
-      .then((data) => {
+    const fetchCollector = async () => {
+      try {
+        const { id } = await params;
+        if (!id) return;
+        const data = await getCollectorById(id);
         setCollector(data);
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(err);
         setLoading(false);
-      });
-  }, [params.id]);
+      }
+    };
+    
+    fetchCollector();
+  }, [params]);
 
   if (!collector) {
     return <div>Collector not found.</div>;
