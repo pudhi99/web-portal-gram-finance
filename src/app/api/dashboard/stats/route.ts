@@ -3,8 +3,13 @@ import dbConnect from '@/lib/dbConnect'
 import { LoanModel } from '@/models/Loan'
 import { BorrowerModel } from '@/models/Borrower'
 import { LoanStatus } from '@/types/loan'
+import '@/lib/models'
+import { handleCors, corsHeaders } from '@/lib/cors'
 
 export async function GET(request: NextRequest) {
+  const corsResponse = handleCors(request)
+  if (corsResponse) return corsResponse
+
   try {
     await dbConnect()
 
@@ -50,12 +55,22 @@ export async function GET(request: NextRequest) {
       outstandingAmount: (loanStats[0]?.totalPrincipal || 0) - (installmentStats[0]?.totalPaid || 0)
     }
 
-    return NextResponse.json({ success: true, data: stats })
+    const response = NextResponse.json({ success: true, data: stats })
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    return response
   } catch (error) {
     console.error('Failed to fetch dashboard stats:', error)
-    return NextResponse.json(
+    const response = NextResponse.json(
       { success: false, error: 'Server error' },
       { status: 500 }
     )
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value)
+    })
+    
+    return response
   }
 } 

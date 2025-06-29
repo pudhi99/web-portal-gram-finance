@@ -1,5 +1,7 @@
 // NOTE: You must install 'mongoose' for this file to work: npm install mongoose
 import mongoose from 'mongoose'
+// Import models registry to ensure all models are registered
+import '@/lib/models'
 
 type ConnectionObject = {
   isConnected?: number

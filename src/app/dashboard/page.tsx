@@ -5,8 +5,9 @@ import { StatsCards } from '@/components/dashboard/StatsCards'
 import { RecentLoans } from '@/components/dashboard/RecentLoans'
 import dbConnect from '@/lib/dbConnect'
 import { LoanModel } from '@/models/Loan'
-import { unstable_noStore as noStore } from 'next/cache';
-
+import { unstable_noStore as noStore } from 'next/cache'
+// Import models registry to ensure all models are registered
+import '@/lib/models'
 
 async function getStats() {
   // This is a placeholder for a proper API call with authentication
