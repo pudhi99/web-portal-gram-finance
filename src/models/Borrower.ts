@@ -13,6 +13,7 @@ export interface IBorrower extends Document {
   isActive: boolean
   createdAt: Date
   updatedAt: Date
+  collectionDays: string[]
 }
 
 const BorrowerSchema = new Schema<IBorrower>(
@@ -27,6 +28,7 @@ const BorrowerSchema = new Schema<IBorrower>(
     idProofUrl: { type: String },
     householdHead: { type: String },
     isActive: { type: Boolean, default: true },
+    collectionDays: [{ type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] }],
   },
   { timestamps: true }
 )

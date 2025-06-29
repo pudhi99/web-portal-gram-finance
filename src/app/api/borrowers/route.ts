@@ -10,16 +10,19 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
+    const collectionDay = searchParams.get('collectionDay')
 
-    const query = search
-      ? {
-          $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { village: { $regex: search, $options: 'i' } },
-            { phone: { $regex: search, $options: 'i' } },
-          ],
-        }
-      : {}
+    let query: any = {}
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { village: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+      ]
+    }
+    if (collectionDay) {
+      query.collectionDays = collectionDay
+    }
 
     const borrowers = await BorrowerModel.find(query)
       .limit(limit)
