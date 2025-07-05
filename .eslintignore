@@ -1,0 +1,33 @@
+# Generated files
+src/generated/**/*
+**/generated/**/*
+
+# Dependencies
+node_modules/**/*
+**/node_modules/**/*
+
+# Build outputs
+.next/**/*
+dist/**/*
+build/**/*
+out/**/*
+
+# Config files
+*.config.js
+*.config.mjs
+*.config.ts
+
+# Coverage
+coverage/**/*
+
+# Public assets
+public/**/*
+
+# Prisma generated files
+**/prisma/generated/**/*
+**/prisma/client/**/*
+**/prisma/migrations/**/*
+
+# Other generated files
+**/*.generated.*
+**/*.gen.* 
