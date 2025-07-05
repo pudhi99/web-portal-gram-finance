@@ -21,7 +21,7 @@ function verifyJwtFromRequest(request: NextRequest) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   
@@ -44,14 +44,15 @@ export async function GET(
   }
 
   try {
+    const { id } = await params;
     // Verify loan exists
-    const loan = await LoanModel.findById(params.id);
+    const loan = await LoanModel.findById(id);
     if (!loan) {
       return NextResponse.json({ success: false, error: 'Loan not found' }, { status: 404 });
     }
 
     // Get installments for this loan
-    const installments = await Installment.find({ loanId: params.id })
+    const installments = await Installment.find({ loanId: id })
       .sort({ installmentNumber: 1 });
 
     return NextResponse.json({ success: true, data: installments });

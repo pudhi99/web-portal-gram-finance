@@ -20,7 +20,7 @@ function verifyJwtFromRequest(request: NextRequest) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   
@@ -43,7 +43,8 @@ export async function GET(
   }
 
   try {
-    const installment = await Installment.findById(params.id)
+    const { id } = await params;
+    const installment = await Installment.findById(id)
       .populate('loanId', 'loanNumber principalAmount borrower');
 
     if (!installment) {
