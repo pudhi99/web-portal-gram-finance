@@ -6,6 +6,31 @@ import { LoanModel } from '@/models/Loan'
 import Installment, { IInstallment } from '@/models/Installment'
 import { loanSchema } from '@/lib/validations/loan'
 import { addWeeks, parseISO } from 'date-fns'
+import jwt from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+
+function verifyJwtFromRequest(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  console.log('Loans API - Auth header:', authHeader);
+  
+  if (!authHeader) {
+    console.log('Loans API - No auth header found');
+    return null;
+  }
+  
+  const token = authHeader.split(' ')[1]
+  console.log('Loans API - Token extracted:', token ? 'Present' : 'Missing');
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('Loans API - JWT verification successful:', decoded);
+    return decoded;
+  } catch (error) {
+    console.log('Loans API - JWT verification failed:', error);
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   await dbConnect()
@@ -71,8 +96,32 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   await dbConnect()
-  const session = await getServerSession(authOptions)
-  if (!session || !session.user) {
+  
+  // Try JWT auth first
+  const jwtUser = verifyJwtFromRequest(request)
+  let isAuthenticated = false
+  let userId = null
+  
+  console.log('Loans API - JWT user:', jwtUser);
+  
+  if (jwtUser) {
+    isAuthenticated = true
+    userId = (jwtUser as any).id
+    console.log('Loans API - Authenticated via JWT, user ID:', userId);
+  } else {
+    // Fallback to session auth
+    const session = await getServerSession(authOptions)
+    console.log('Loans API - Session:', session);
+    
+    if (session && session.user) {
+      isAuthenticated = true
+      userId = session.user.id
+      console.log('Loans API - Authenticated via session, user ID:', userId);
+    }
+  }
+  
+  if (!isAuthenticated) {
+    console.log('Loans API - Not authenticated, returning 401');
     return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 })
   }
 
@@ -102,7 +151,7 @@ export async function POST(request: NextRequest) {
       termWeeks,
       startDate: parseISO(startDate),
       borrower: borrowerId,
-      createdBy: session.user.id,
+      createdBy: userId,
       installments: [], // Start with an empty array
     })
     const savedLoan = await newLoan.save()
