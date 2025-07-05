@@ -5,14 +5,37 @@ import dbConnect from '@/lib/dbConnect';
 import Collection from '@/models/Collection';
 import mongoose from 'mongoose';
 import { updateCollectionSchema } from '@/lib/validations/collection';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+function verifyJwtFromRequest(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) return null;
+  const token = authHeader.split(' ')[1];
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    // Try JWT auth first
+    const jwtUser = verifyJwtFromRequest(request);
+    let isAuthenticated = false;
+    if (jwtUser) {
+      isAuthenticated = true;
+    } else {
+      // Fallback to session auth
+      const session = await getServerSession(authOptions);
+      if (session) isAuthenticated = true;
+    }
+    if (!isAuthenticated) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -55,8 +78,17 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    // Try JWT auth first
+    const jwtUser = verifyJwtFromRequest(request);
+    let isAuthenticated = false;
+    if (jwtUser) {
+      isAuthenticated = true;
+    } else {
+      // Fallback to session auth
+      const session = await getServerSession(authOptions);
+      if (session) isAuthenticated = true;
+    }
+    if (!isAuthenticated) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -98,8 +130,17 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    // Try JWT auth first
+    const jwtUser = verifyJwtFromRequest(request);
+    let isAuthenticated = false;
+    if (jwtUser) {
+      isAuthenticated = true;
+    } else {
+      // Fallback to session auth
+      const session = await getServerSession(authOptions);
+      if (session) isAuthenticated = true;
+    }
+    if (!isAuthenticated) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

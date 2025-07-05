@@ -78,7 +78,8 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      collections,
+      success: true,
+      data: collections,
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
       .populate('collectorId', 'name email phone')
       .lean();
 
-    return NextResponse.json(populatedCollection, { status: 201 });
+    return NextResponse.json({ success: true, data: populatedCollection }, { status: 201 });
   } catch (error) {
     console.error('Error creating collection:', error);
     if (error instanceof Error) {
