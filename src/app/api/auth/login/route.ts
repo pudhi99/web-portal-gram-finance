@@ -3,10 +3,14 @@ import dbConnect from "@/lib/dbConnect";
 import { UserModel } from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { handleCors, corsHeaders } from "@/lib/cors";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 export async function POST(request: NextRequest) {
+  // Handle CORS
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
   await dbConnect();
   try {
     const { username, password } = await request.json();
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       token,
       user: {
@@ -37,7 +41,28 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
+    
+    // Add CORS headers
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || "Login failed." }, { status: 500 });
+    const response = NextResponse.json({ success: false, error: error.message || "Login failed." }, { status: 500 });
+    
+    // Add CORS headers
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders(request),
+  });
 } 

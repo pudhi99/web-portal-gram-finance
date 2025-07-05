@@ -80,7 +80,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validation = loanSchema.safeParse(body)
     if (!validation.success) {
-      return NextResponse.json({ success: false, error: validation.error.format() }, { status: 400 })
+      // Convert validation errors to a readable string
+      const errorMessages = Object.entries(validation.error.format()).map(([field, errors]) => {
+        if (errors && typeof errors === 'object' && '_errors' in errors) {
+          return `${field}: ${(errors as any)._errors.join(', ')}`;
+        }
+        return `${field}: Invalid value`;
+      }).join('; ');
+      
+      return NextResponse.json({ success: false, error: errorMessages }, { status: 400 })
     }
 
     const { principalAmount, termWeeks, startDate, borrowerId, disbursedAmount } = validation.data
@@ -109,7 +117,7 @@ export async function POST(request: NextRequest) {
         loanId: savedLoan._id,
         installmentNumber: i + 1,
         dueDate,
-        amountDue: weeklyInstallment,
+        amount: weeklyInstallment,
       })
     }
     const createdInstallments = await Installment.insertMany(installmentDocs)
@@ -121,6 +129,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: savedLoan }, { status: 201 })
   } catch (error: any) {
+    console.error('Loan creation error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 } 
