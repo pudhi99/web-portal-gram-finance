@@ -9,22 +9,57 @@ import Installment from '@/models/Installment';
 import { UserModel } from '@/models/User';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import '@/lib/models';
+import jwt from 'jsonwebtoken';
+import { handleCors, corsHeaders } from '@/lib/cors';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+interface JwtPayload {
+  email: string;
+  userId: string;
+}
+
+function verifyJwtFromRequest(request: NextRequest): JwtPayload | null {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) return null;
+  const token = authHeader.split(' ')[1];
+  try {
+    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
+
+  // Try JWT auth first (for mobile app)
+  const jwtUser = verifyJwtFromRequest(request);
+  let user = null;
+  
+  if (jwtUser) {
+    // JWT authentication successful
+    user = await UserModel.findOne({ email: jwtUser.email });
+  } else {
+    // Fallback to session auth (for web portal)
+    const session = await getServerSession(authOptions);
+    if (session?.user?.email) {
+      user = await UserModel.findOne({ email: session.user.email });
+    }
+  }
+  
+  if (!user) {
+    const response = NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
+  }
+
   try {
     await dbConnect();
     
-    // Get authenticated user
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await UserModel.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
-    }
-
     // Get current date ranges
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -173,16 +208,26 @@ export async function GET(request: NextRequest) {
       loanStatusDistribution
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: dashboardStats
     });
+    
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    return response;
 
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    return NextResponse.json(
+    const response = NextResponse.json(
       { success: false, error: 'Failed to fetch dashboard statistics' },
       { status: 500 }
     );
+    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
   }
 } 
