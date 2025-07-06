@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import dbConnect from '@/lib/dbConnect';
 import CollectionModel from '@/models/Collection';
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -76,73 +77,47 @@ export async function GET(
     }
 
     // Get all collections for this loan by finding installments first
-    const collections = await CollectionModel.aggregate([
-      {
-        $lookup: {
-          from: 'installments',
-          localField: 'installmentId',
-          foreignField: '_id',
-          as: 'installment'
-        }
-      },
-      {
-        $unwind: '$installment'
-      },
-      {
-        $match: {
-          'installment.loanId': loanId
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'collectorId',
-          foreignField: '_id',
-          as: 'collector'
-        }
-      },
-      {
-        $unwind: {
-          path: '$collector',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $lookup: {
-          from: 'loans',
-          localField: 'installment.loanId',
-          foreignField: '_id',
-          as: 'loan'
-        }
-      },
-      {
-        $unwind: '$loan'
-      },
-      {
-        $lookup: {
-          from: 'borrowers',
-          localField: 'loan.borrower',
-          foreignField: '_id',
-          as: 'borrower'
-        }
-      },
-      {
-        $unwind: '$borrower'
-      },
-      {
-        $sort: { createdAt: -1 }
-      }
-    ]);
+    console.log('Payments API - Searching for loanId:', loanId);
+    
+    // First, let's get all collections to see what we have
+    const allCollections = await CollectionModel.find({}).limit(5);
+    console.log('Payments API - Sample collections:', allCollections);
+    
+    // Get installments for this loan
+    const installments = await mongoose.model('Installment').find({ loanId: loanId });
+    console.log('Payments API - Installments for loan:', installments.length);
+    console.log('Payments API - Installment IDs:', installments.map(i => i._id.toString()));
+    
+    if (installments.length === 0) {
+      console.log('Payments API - No installments found for loan');
+      return NextResponse.json({
+        success: true,
+        data: [],
+      });
+    }
+    
+    const installmentIds = installments.map(i => i._id);
+    
+    // Now find collections for these installments
+    const collections = await CollectionModel.find({
+      installmentId: { $in: installmentIds }
+    })
+    .populate('collectorId', 'name')
+    .populate('installmentId', 'loanId')
+    .sort({ createdAt: -1 });
+
+    console.log('Payments API - Found collections:', collections.length);
+    console.log('Payments API - First collection sample:', collections[0]);
 
     // Convert collections to payment format
     const payments = collections.map(collection => ({
       id: collection._id,
-      loanId: collection.loan._id,
+      loanId: loanId, // Use the loanId from the URL
       amount: collection.amount,
       paymentDate: collection.paymentDate,
-      collectorName: collection.collector?.name || 'Unknown',
-      collectorId: collection.collector?._id || '',
-      status: collection.status === 'COLLECTED' ? 'COMPLETED' : 'PENDING',
+      collectorName: collection.collectorId?.name || 'Unknown',
+      collectorId: collection.collectorId?._id || '',
+      status: 'COMPLETED', // Collections are always completed when they exist
       notes: collection.notes,
       createdAt: collection.createdAt,
     }));
