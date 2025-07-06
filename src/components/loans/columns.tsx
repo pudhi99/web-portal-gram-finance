@@ -17,7 +17,7 @@ import { PopulatedLoan, LoanStatus } from '@/types/loan'
 
 const statusColors: Record<LoanStatus, string> = {
   [LoanStatus.ACTIVE]: 'bg-blue-500 hover:bg-blue-600',
-  [LoanStatus.PAID]: 'bg-green-500 hover:bg-green-600',
+  [LoanStatus.COMPLETED]: 'bg-green-500 hover:bg-green-600',
   [LoanStatus.DEFAULTED]: 'bg-red-500 hover:bg-red-600',
 }
 

@@ -6,7 +6,7 @@ import CollectionModel from '@/models/Collection';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   
@@ -19,7 +19,7 @@ export async function GET(
       );
     }
 
-    const loanId = params.id;
+    const { id: loanId } = await params;
     if (!loanId) {
       return NextResponse.json(
         { error: 'Loan ID is required' },
