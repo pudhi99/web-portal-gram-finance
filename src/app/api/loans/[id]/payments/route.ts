@@ -75,19 +75,71 @@ export async function GET(
       );
     }
 
-    // Get all collections for this loan
-    const collections = await CollectionModel.find({ loan: loanId })
-      .populate('collector', 'name')
-      .populate('loan', 'loanNumber borrower')
-      .populate('borrower', 'name')
-      .sort({ createdAt: -1 });
+    // Get all collections for this loan by finding installments first
+    const collections = await CollectionModel.aggregate([
+      {
+        $lookup: {
+          from: 'installments',
+          localField: 'installmentId',
+          foreignField: '_id',
+          as: 'installment'
+        }
+      },
+      {
+        $unwind: '$installment'
+      },
+      {
+        $match: {
+          'installment.loanId': loanId
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'collectorId',
+          foreignField: '_id',
+          as: 'collector'
+        }
+      },
+      {
+        $unwind: {
+          path: '$collector',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'loans',
+          localField: 'installment.loanId',
+          foreignField: '_id',
+          as: 'loan'
+        }
+      },
+      {
+        $unwind: '$loan'
+      },
+      {
+        $lookup: {
+          from: 'borrowers',
+          localField: 'loan.borrower',
+          foreignField: '_id',
+          as: 'borrower'
+        }
+      },
+      {
+        $unwind: '$borrower'
+      },
+      {
+        $sort: { createdAt: -1 }
+      }
+    ]);
 
     // Convert collections to payment format
     const payments = collections.map(collection => ({
       id: collection._id,
       loanId: collection.loan._id,
       amount: collection.amount,
-      paymentDate: collection.collectionDate,
+      paymentDate: collection.paymentDate,
       collectorName: collection.collector?.name || 'Unknown',
       collectorId: collection.collector?._id || '',
       status: collection.status === 'COLLECTED' ? 'COMPLETED' : 'PENDING',
