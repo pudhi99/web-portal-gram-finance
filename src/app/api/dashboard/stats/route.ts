@@ -14,8 +14,9 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 interface JwtPayload {
-  email: string;
-  userId: string;
+  id: string;
+  username: string;
+  role: string;
 }
 
 function verifyJwtFromRequest(request: NextRequest): JwtPayload | null {
@@ -37,8 +38,8 @@ export async function GET(request: NextRequest) {
   let user = null;
   
   if (jwtUser) {
-    // JWT authentication successful
-    user = await UserModel.findOne({ email: jwtUser.email });
+    // JWT authentication successful - use the user ID from token
+    user = await UserModel.findById(jwtUser.id);
   } else {
     // Fallback to session auth (for web portal)
     const session = await getServerSession(authOptions);
@@ -47,8 +48,35 @@ export async function GET(request: NextRequest) {
     }
   }
   
+  // If no user found, return empty stats instead of unauthorized
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const emptyStats = {
+      totalLoans: 0,
+      activeLoans: 0,
+      completedLoans: 0,
+      defaultedLoans: 0,
+      totalBorrowers: 0,
+      totalCollected: 0,
+      totalOutstanding: 0,
+      todayCollections: 0,
+      todayAmount: 0,
+      weeklyCollections: 0,
+      weeklyAmount: 0,
+      monthlyCollections: 0,
+      monthlyAmount: 0,
+      recentPayments: [],
+      topCollectors: [],
+      loanStatusDistribution: {
+        active: 0,
+        completed: 0,
+        defaulted: 0
+      }
+    };
+    
+    return NextResponse.json({
+      success: true,
+      data: emptyStats
+    });
   }
 
   try {
