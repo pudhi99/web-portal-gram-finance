@@ -35,7 +35,18 @@ function verifyJwtFromRequest(request: NextRequest) {
 export async function GET(request: NextRequest) {
   await dbConnect()
   try {
-    const loans = await LoanModel.aggregate([
+    const { searchParams } = new URL(request.url);
+    const collectionDay = searchParams.get('collectionDay');
+    
+    const pipeline: any[] = [];
+    
+    // Add match stage if collectionDay is provided
+    if (collectionDay) {
+      pipeline.push({ $match: { collectionDays: collectionDay } });
+    }
+    
+    // Add the rest of the pipeline stages
+    pipeline.push(
       {
         $lookup: {
           from: 'installments',
@@ -73,6 +84,9 @@ export async function GET(request: NextRequest) {
           disbursedAmount: 1,
           outstandingAmount: 1,
           status: 1,
+          termWeeks: 1,
+          startDate: 1,
+          collectionDays: 1,
           borrower: {
             _id: '$borrowerData._id',
             name: '$borrowerData.name',
@@ -82,8 +96,10 @@ export async function GET(request: NextRequest) {
       },
       {
         $sort: { createdAt: -1 },
-      },
-    ])
+      }
+    );
+
+    const loans = await LoanModel.aggregate(pipeline);
 
     return NextResponse.json({ success: true, data: loans })
   } catch (error: any) {
@@ -140,7 +156,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: errorMessages }, { status: 400 })
     }
 
-    const { principalAmount, termWeeks, startDate, borrowerId, disbursedAmount } = validation.data
+    const { principalAmount, termWeeks, startDate, borrowerId, disbursedAmount, collectionDays } = validation.data
     
     // 1. Create the loan first to get a loanId
     const loanNumber = `LOAN-${Date.now()}` // Simple unique loan number
@@ -153,6 +169,7 @@ export async function POST(request: NextRequest) {
       borrower: borrowerId,
       createdBy: userId,
       installments: [], // Start with an empty array
+      collectionDays: collectionDays || [],
     })
     const savedLoan = await newLoan.save()
     

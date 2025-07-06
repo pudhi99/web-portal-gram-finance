@@ -13,6 +13,7 @@ export const loanSchema = z.object({
     message: 'Invalid date format',
   }),
   borrowerId: z.string().min(1, 'Borrower is required.'),
+  collectionDays: z.array(z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])).optional(),
 })
 
 export const updateLoanSchema = z.object({

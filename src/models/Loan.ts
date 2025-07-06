@@ -14,6 +14,7 @@ export interface ILoan extends Document {
   borrower: IBorrower['_id']
   createdBy: IUser['_id']
   installments: IInstallment['_id'][]
+  collectionDays: string[]
 }
 
 const LoanSchema = new Schema<ILoan>(
@@ -31,6 +32,7 @@ const LoanSchema = new Schema<ILoan>(
     borrower: { type: Schema.Types.ObjectId, ref: 'Borrower', required: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     installments: [{ type: Schema.Types.ObjectId, ref: 'Installment' }],
+    collectionDays: [{ type: String, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] }],
   },
   { timestamps: true }
 )
