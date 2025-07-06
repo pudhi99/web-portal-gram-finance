@@ -10,7 +10,6 @@ import { UserModel } from '@/models/User';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import '@/lib/models';
 import jwt from 'jsonwebtoken';
-import { handleCors, corsHeaders } from '@/lib/cors';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -31,9 +30,8 @@ function verifyJwtFromRequest(request: NextRequest): JwtPayload | null {
 }
 
 export async function GET(request: NextRequest) {
-  const corsResponse = handleCors(request);
-  if (corsResponse) return corsResponse;
-
+  await dbConnect();
+  
   // Try JWT auth first (for mobile app)
   const jwtUser = verifyJwtFromRequest(request);
   let user = null;
@@ -50,16 +48,10 @@ export async function GET(request: NextRequest) {
   }
   
   if (!user) {
-    const response = NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-    return response;
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    await dbConnect();
-    
     // Get current date ranges
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -208,26 +200,16 @@ export async function GET(request: NextRequest) {
       loanStatusDistribution
     };
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: dashboardStats
     });
-    
-    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-    
-    return response;
 
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    const response = NextResponse.json(
+    return NextResponse.json(
       { success: false, error: 'Failed to fetch dashboard statistics' },
       { status: 500 }
     );
-    Object.entries(corsHeaders(request)).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-    return response;
   }
 } 
