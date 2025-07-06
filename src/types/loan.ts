@@ -1,9 +1,9 @@
 import { ILoan as LoanInterface } from '@/models/Loan'
 
 export enum LoanStatus {
-  ACTIVE = 'Active',
-  PAID = 'Paid',
-  DEFAULTED = 'Defaulted',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  DEFAULTED = 'DEFAULTED',
 }
 
 // Re-exporting the ILoan interface from the model

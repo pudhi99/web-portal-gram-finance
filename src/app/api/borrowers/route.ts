@@ -40,11 +40,99 @@ export async function GET(request: NextRequest) {
       query.collectionDays = collectionDay
     }
 
-    const borrowers = await BorrowerModel.find(query)
-      .limit(limit)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 })
+    // Use aggregation to get borrowers with loan statistics
+    const pipeline: any[] = [
+      { $match: query },
+      {
+        $lookup: {
+          from: 'loans',
+          localField: '_id',
+          foreignField: 'borrower',
+          as: 'loans'
+        }
+      },
+      {
+        $lookup: {
+          from: 'collections',
+          localField: 'loans._id',
+          foreignField: 'installmentId',
+          as: 'collections'
+        }
+      },
+      {
+        $addFields: {
+          loansCount: { $size: '$loans' },
+          totalOutstanding: {
+            $sum: {
+              $map: {
+                input: '$loans',
+                as: 'loan',
+                in: {
+                  $subtract: [
+                    '$$loan.principalAmount',
+                    {
+                      $ifNull: [
+                        {
+                          $sum: {
+                            $map: {
+                              input: {
+                                $filter: {
+                                  input: '$collections',
+                                  as: 'collection',
+                                  cond: { $eq: ['$$collection.installmentId', '$$loan._id'] }
+                                }
+                              },
+                              as: 'collection',
+                              in: '$$collection.amount'
+                            }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          lastCollection: {
+            $max: {
+              $map: {
+                input: '$collections',
+                as: 'collection',
+                in: '$$collection.paymentDate'
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          phone: 1,
+          address: 1,
+          village: 1,
+          gpsLat: 1,
+          gpsLng: 1,
+          photoUrl: 1,
+          idProofUrl: 1,
+          householdHead: 1,
+          isActive: 1,
+          collectionDays: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          loansCount: 1,
+          totalOutstanding: 1,
+          lastCollection: 1
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit }
+    ]
 
+    const borrowers = await BorrowerModel.aggregate(pipeline)
     const total = await BorrowerModel.countDocuments(query)
 
     return NextResponse.json({
